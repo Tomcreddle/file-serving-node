@@ -5,14 +5,12 @@ const path = require('path');
 const app = express();
 const port = 3000;
 
-
 const storage = multer.diskStorage({
     destination: './uploads/', 
     filename: (req, file, cb) => {
         cb(null, file.fieldname + '-' + Date.now() + path.extname(file.originalname));
     }
 });
-
 
 const upload = multer({
     storage: storage,
@@ -28,11 +26,9 @@ const upload = multer({
             cb(new Error('Invalid file type!'));
         }
     }
-}).single('file'); 
-
+}).single('file');
 
 app.use(express.static('public'));
-
 
 app.post('/upload', (req, res) => {
     upload(req, res, (err) => {
@@ -48,11 +44,6 @@ app.post('/upload', (req, res) => {
     });
 });
 
-
 app.listen(port, () => {
     console.log(`Server running at http://localhost:${port}`);
 });
-
-
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
