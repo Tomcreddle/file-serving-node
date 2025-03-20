@@ -1,26 +1,58 @@
-const http = require('http');
-const fs = require('fs');
+const express = require('express');
+const multer = require('multer');
 const path = require('path');
-const mime = require('mime-types');
 
-const server = http.createServer((req, res) => {
-    let filePath = path.join(__dirname, 'public', req.url === '/' ? 'index.html' : req.url);
+const app = express();
+const port = 3000;
 
-    fs.readFile(filePath, (err, content) => {
-        if (err) {
-            if (err.code === 'ENOENT') {
-                res.writeHead(404, { 'Content-Type': 'text/html' });
-                res.end('<h1>404 - File Not Found</h1>', 'utf8');
-            } else {
-                res.writeHead(500);
-                res.end(`<h1>Server Error: ${err.code}</h1>`);
-            }
+
+const storage = multer.diskStorage({
+    destination: './uploads/', 
+    filename: (req, file, cb) => {
+        cb(null, file.fieldname + '-' + Date.now() + path.extname(file.originalname));
+    }
+});
+
+
+const upload = multer({
+    storage: storage,
+    limits: { fileSize: 5 * 1024 * 1024 }, 
+    fileFilter: (req, file, cb) => {
+        const fileTypes = /jpeg|jpg|png|gif|pdf|txt/; 
+        const extname = fileTypes.test(path.extname(file.originalname).toLowerCase());
+        const mimetype = fileTypes.test(file.mimetype);
+
+        if (extname && mimetype) {
+            return cb(null, true);
         } else {
-            res.writeHead(200, { 'Content-Type': mime.lookup(filePath) });
-            res.end(content);
+            cb(new Error('Invalid file type!'));
+        }
+    }
+}).single('file'); 
+
+
+app.use(express.static('public'));
+
+
+app.post('/upload', (req, res) => {
+    upload(req, res, (err) => {
+        if (err) {
+            res.status(400).send({ message: err.message });
+        } else {
+            if (!req.file) {
+                res.status(400).send({ message: 'No file uploaded' });
+            } else {
+                res.send({ message: 'File uploaded successfully!', file: req.file.filename });
+            }
         }
     });
 });
+
+
+app.listen(port, () => {
+    console.log(`Server running at http://localhost:${port}`);
+});
+
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
